@@ -5,7 +5,7 @@
 [![arXiv](https://img.shields.io/badge/arXiv-2024.12345-b31b1b.svg)](https://arxiv.org/abs/2603.12046)
 [![Website](https://img.shields.io/badge/🌐-Website-blue.svg)](https://umbertocappellazzo.github.io/Dr-SHAP-AV)
 [![Visitors](https://visitor-badge.laobi.icu/badge?page_id=umbertocappellazzo.Dr-SHAP-AV)](https://github.com/umbertocappellazzo/Dr-SHAP-AV)
-[![GitHub Stars](https://img.shields.io/github/stars/umbertocappellazzo/Dr-SHAP-AV?style=social)](https://github.com/umbertocappellazzo/Dr-SHAP-AV/stargazers)
+[![Stars](https://badgen.net/github/stars/umbertocappellazzo/Dr-SHAP-AV)](https://github.com/umbertocappellazzo/Dr-SHAP-AV/stargazers)
 
 **[Umberto Cappellazzo¹](#) · [Stavros Petridis¹²](#) · [Maja Pantic¹²](#)**
 
@@ -18,6 +18,7 @@
 ---
 
 ## 📢 News
+- **[06-2026]** The paper has been accepted to **Interspeech 2026 [Long Track]**! 🤩 🤩
 - **[03-2026]** 🚀 Code and models released!
 - **[03-2026]** 📝 Paper submitted to arXiv.
 
