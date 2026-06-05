@@ -1,4 +1,4 @@
-# Dr. SHAP-AV: Decoding Relative Modality Contributions via Shapley Attribution in Audio-Visual Speech Recognition
+# Dr. SHAP-AV: Decoding Relative Modality Contributions via Shapley Attribution in Audio-Visual Speech Recognition [Interspeech 2026, Long Track]
 
 <div align="center">
 
