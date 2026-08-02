@@ -34,11 +34,12 @@ DISTORTION_TYPES = ["CC", "BW", "GNC", "GB", "JPEG", "VC"]
 FRAME_DISTORTION_TYPES = ["CC", "BW", "GNC", "GB", "JPEG"]
 
 _PARAM_DICT = {
-    "CC": [0.85, 0.725, 0.6, 0.475, 0.35],      # smaller, worse
-    "BW": [16, 32, 48, 64, 80],                 # larger, worse
-    "GNC": [0.001, 0.002, 0.005, 0.01, 0.05],   # larger, worse
-    "GB": [7, 9, 13, 17, 21],                   # larger, worse
-    "JPEG": [2, 3, 4, 5, 6],                    # larger, worse
+    "CC": [0.35*1.25*1.25*1.25*1.25, 0.35*1.25*1.25*1.25, 0.35*1.25*1.25, 0.35*1.25, 0.35],      # smaller, worse
+    "BW": [32, 64, 128, 256, 512],                 # larger, worse
+    "GNC": [0.004, 0.008, 0.016, 0.032, 0.064],   # larger, worse
+    "GB": [7, 9, 13, 21, 37],                   # larger, worse
+    # "GB": [7, 9, 13, 17, 21],                   # larger, worse
+    "JPEG": [1, 2, 4, 8, 16],                    # larger, worse
     "VC": [23, 30, 37, 44, 51],                 # larger CRF, worse
 }
 
