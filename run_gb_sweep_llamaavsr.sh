@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Gaussian-blur (GB) visual-severity sweep for Llama-AVSR, full LRS3 test set,
+# JPEG compression (JPEG) visual-severity sweep for Llama-AVSR, full LRS3 test set,
 # Permutation SHAP. Launches all 6 configs (clean + levels 1-5) in parallel,
 # one per GPU, throttled to the GPU pool size below.
 set -uo pipefail
@@ -12,7 +12,7 @@ OUT_DIR=output
 WANDB_PROJECT=dr-shap-av-visual
 TEST_FILE=lrs3_test_transcript_lengths_seg24s_LLM_lowercase.csv
 
-LOGDIR=logs/gb_sweep_llamaavsr
+LOGDIR=logs/jpeg_sweep_llamaavsr
 mkdir -p "$LOGDIR"
 
 COMMON_ARGS=(--wandb-project "$WANDB_PROJECT" --root-dir "$ROOT" --pretrained-model-path "$CKPT" \
@@ -23,11 +23,11 @@ COMMON_ARGS=(--wandb-project "$WANDB_PROJECT" --root-dir "$ROOT" --pretrained-mo
 
 JOBS=(
   "clean:"
-  "lvl1:--vid-dist-type GB --vid-dist-level 1"
-  "lvl2:--vid-dist-type GB --vid-dist-level 2"
-  "lvl3:--vid-dist-type GB --vid-dist-level 3"
-  "lvl4:--vid-dist-type GB --vid-dist-level 4"
-  "lvl5:--vid-dist-type GB --vid-dist-level 5"
+  "lvl1:--vid-dist-type JPEG --vid-dist-level 1"
+  "lvl2:--vid-dist-type JPEG --vid-dist-level 2"
+  "lvl3:--vid-dist-type JPEG --vid-dist-level 3"
+  "lvl4:--vid-dist-type JPEG --vid-dist-level 4"
+  "lvl5:--vid-dist-type JPEG --vid-dist-level 5"
 )
 
 MAX_PARALLEL=${#GPUS[@]}
@@ -38,11 +38,11 @@ for job in "${JOBS[@]}"; do
   extra="${job#*:}"
   gpu="${GPUS[$((gpu_idx % ${#GPUS[@]}))]}"
   gpu_idx=$((gpu_idx + 1))
-  exp_name="LRS3_LlamaAVSR_shap_permutation_viddist-GB-${suffix}"
+  exp_name="LRS3_LlamaAVSR_shap_permutation_viddist-JPEG-${suffix}"
   echo "Launching $exp_name on GPU $gpu (log: $LOGDIR/${exp_name}.log)"
   CUDA_VISIBLE_DEVICES=$gpu python eval_LlamaAVSR.py "${COMMON_ARGS[@]}" $extra \
     --exp-name "$exp_name" > "$LOGDIR/${exp_name}.log" 2>&1 &
 done
 
 wait
-echo "All Llama-AVSR GB severity-sweep runs finished. Logs in $LOGDIR/"
+echo "All Llama-AVSR JPEG severity-sweep runs finished. Logs in $LOGDIR/"
