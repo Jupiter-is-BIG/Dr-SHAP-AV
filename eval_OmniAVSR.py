@@ -12,7 +12,7 @@ from argparse import ArgumentParser
 from datamodule.data_module import DataModule_LLM
 from scripts.lightning_OmniAVSR import ModelModule_LLM
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.loggers import WandbLogger
 
 def get_trainer(args):
@@ -227,9 +227,32 @@ def parse_args():
         help="The noise type to use during evaluation."
     )
     parser.add_argument(
+        "--vid-dist-type",
+        default="none",
+        type=str,
+        choices=["none", "CC", "BW", "GNC", "GB", "JPEG", "random"],
+        help="Visual distortion applied to the video modality at test time (mirrors --noise-type "
+             "for audio): CC=color contrast, BW=block-wise, GNC=gaussian noise (color), "
+             "GB=gaussian blur, JPEG=jpeg compression, random=pick one per sample, "
+             "none=no distortion.",
+    )
+    parser.add_argument(
+        "--vid-dist-level",
+        default=3,
+        type=int,
+        choices=[1, 2, 3, 4, 5],
+        help="Severity of the visual distortion (1=mildest, 5=most severe).",
+    )
+    parser.add_argument(
         "--debug",
         action="store_true",
         help="Flag to use debug level for logging",
+    )
+    parser.add_argument(
+        "--seed",
+        default=42,
+        type=int,
+        help="Random seed (also controls stochastic visual distortions like BW/GNC/random).",
     )
 
     # SHAP-related arguments.
@@ -270,7 +293,8 @@ def init_logger(debug):
 def cli_main():
     args = parse_args()
     init_logger(args.debug)
-    
+    seed_everything(args.seed, workers=True)
+
     modelmodule = ModelModule_LLM(args)
     datamodule = DataModule_LLM(args, modelmodule.tokenizer, is_matryoshka= True, train_num_buckets=args.train_num_buckets)
     trainer = get_trainer(args)

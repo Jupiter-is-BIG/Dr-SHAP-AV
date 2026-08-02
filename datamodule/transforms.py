@@ -6,6 +6,8 @@ import torch
 import torchaudio
 import torchvision
 
+from .video_distortion import distortion_vid, FRAME_DISTORTION_TYPES
+
 class FunctionalModule(torch.nn.Module):
     def __init__(self, functional):
         super().__init__()
@@ -60,10 +62,39 @@ class AddNoise(torch.nn.Module):
         return noisy_speech.t()
 
 
+class VideoDistortion(torch.nn.Module):
+    """
+    Applies a fixed-type/fixed-severity visual corruption (color, blur,
+    block-wise, or compression-style) to a raw T x C x H x W clip, mirroring
+    AddNoise's role for audio: it lets us sweep visual degradation the same
+    way --decode-snr-target sweeps acoustic degradation.
+    """
+    def __init__(self, dist_type, dist_level=3):
+        super().__init__()
+        assert dist_type in FRAME_DISTORTION_TYPES + ["random"], (
+            f"dist_type must be one of {FRAME_DISTORTION_TYPES + ['random']}, got {dist_type!r}. "
+            "'VC' (video compression) is not supported here since a per-sample ffmpeg subprocess "
+            "is too slow inside a DataLoader; call video_distortion.distortion_vid(..., dist_type='VC', "
+            "vid_in_path=...) directly instead."
+        )
+        self.dist_type = dist_type
+        self.dist_level = dist_level
+
+    def forward(self, video):
+        # video: T x C x H x W, RGB, pre-normalization (0-255 range).
+        return distortion_vid(video, dist_type=self.dist_type, dist_level=self.dist_level)
+
+
 class VideoTransform:
-    def __init__(self, subset):
+    def __init__(self, subset, dist_type=None, dist_level=3):
+        distortion = (
+            [VideoDistortion(dist_type, dist_level)]
+            if dist_type not in (None, "none")
+            else []
+        )
         if subset == "train":
             self.video_pipeline = torch.nn.Sequential(
+                *distortion,
                 FunctionalModule(lambda x: x / 255.0),
                 torchvision.transforms.RandomCrop(88),
                 torchvision.transforms.Grayscale(),
@@ -72,6 +103,7 @@ class VideoTransform:
             )
         elif subset == "val" or subset == "test":
             self.video_pipeline = torch.nn.Sequential(
+                *distortion,
                 FunctionalModule(lambda x: x / 255.0),
                 torchvision.transforms.CenterCrop(88),
                 torchvision.transforms.Grayscale(),

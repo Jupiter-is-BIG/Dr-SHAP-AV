@@ -166,6 +166,7 @@ class DataModule_LLM(LightningDataModule):
         self.downsample_ratio = args.downsample_ratio_video
 
         assert args.noise_type in ["babble", "music", "speech", "sound"]
+        assert args.vid_dist_type in ["none", "CC", "BW", "GNC", "GB", "JPEG", "random"]
         
     def train_dataloader(self):
         
@@ -235,7 +236,9 @@ class DataModule_LLM(LightningDataModule):
             audio_transform=AudioTransform(
                 "test", noise_type = self.args.noise_type, snr_target=self.args.decode_snr_target,
                 ),
-            video_transform=VideoTransform("test"),
+            video_transform=VideoTransform(
+                "test", dist_type=self.args.vid_dist_type, dist_level=self.args.vid_dist_level,
+                ),
             downsample_ratio=self.downsample_ratio,
             is_matryoshka = self.is_matryoshka
         )

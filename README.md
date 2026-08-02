@@ -110,6 +110,8 @@ The most important arguments to specify regardless of the pre-trained model used
 -  `output-path`: The path to save the SHAP values for further analyses. **This folder must be created beforehand!** By default, this is set to None, meaning the Shapley Matrix of each input won't be saved. 
 -  `noise-type`: The acoustic noise file to sample from. Choices: [`babble`, `music`, `sound`, `speech`].
 -  `decode-snr-target`: The SNR level of acoustic noise to test on.
+-  `vid-dist-type`: Visual distortion applied to the video modality at test time, mirroring `noise-type`/`decode-snr-target` for audio. Choices: [`none`, `CC` (color contrast), `BW` (block-wise), `GNC` (gaussian noise, color), `GB` (gaussian blur), `JPEG` (jpeg compression), `random`]. Default `none` (no visual distortion). Implemented in `datamodule/video_distortion.py` / `datamodule/distortions.py`. (Color saturation (`CS`) is intentionally not offered — it's nullified by the grayscale conversion applied downstream.)
+-  `vid-dist-level`: Severity of the visual distortion, 1 (mildest) to 5 (most severe). Default `3`.
 
 </details>
 
