@@ -4,7 +4,7 @@
 # one per GPU, throttled to the GPU pool size below.
 set -uo pipefail
 
-GPUS=(0 1 2 3 4 5)
+GPUS=(0 1 2 3)
 ROOT=/ucappell/datasets 
 CKPT=/aa4825/models/llama_avsr/LRS3_audiovisual_avg-pooling_AVH-Large_Whisper-M_Llama3.2-1B_pool-4-2_LN_seed7.pth
 AVH_CKPT=/aa4825/models/av_hubert/large_vox_iter5.pt
@@ -22,8 +22,8 @@ COMMON_ARGS=(--wandb-project "$WANDB_PROJECT" --root-dir "$ROOT" --pretrained-mo
   --compute-shap True --shap-alg permutation --num-samples-shap 2000 --output-path-shap "$OUT_DIR" --seed 42)
 
 JOBS=(
-  "clean:"
-  "lvl1:--vid-dist-type JPEG --vid-dist-level 1"
+  # "clean:"
+  # "lvl1:--vid-dist-type JPEG --vid-dist-level 1"
   "lvl2:--vid-dist-type JPEG --vid-dist-level 2"
   "lvl3:--vid-dist-type JPEG --vid-dist-level 3"
   "lvl4:--vid-dist-type JPEG --vid-dist-level 4"
