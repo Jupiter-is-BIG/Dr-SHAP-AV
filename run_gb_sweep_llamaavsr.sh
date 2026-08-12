@@ -10,7 +10,7 @@ CKPT=/aa4825/models/llama_avsr/LRS3_audiovisual_avg-pooling_AVH-Large_Whisper-M_
 AVH_CKPT=/aa4825/models/av_hubert/large_vox_iter5.pt
 OUT_DIR=output
 WANDB_PROJECT=dr-shap-av-visual
-TEST_FILE=lrs3_test_transcript_lengths_seg24s_LLM_lowercase.csv
+TEST_FILE=lrs3_test_transcript_lengths_seg24s_LLM_lowercase_micro2.csv
 
 LOGDIR=logs/jpeg_sweep_llamaavsr
 mkdir -p "$LOGDIR"
@@ -38,7 +38,7 @@ for job in "${JOBS[@]}"; do
   extra="${job#*:}"
   gpu="${GPUS[$((gpu_idx % ${#GPUS[@]}))]}"
   gpu_idx=$((gpu_idx + 1))
-  exp_name="LRS3_LlamaAVSR_shap_permutation_viddist-JPEG-${suffix}"
+  exp_name="LRS3_LlamaAVSR_shap_permutation_viddist-JPEG2-${suffix}"
   echo "Launching $exp_name on GPU $gpu (log: $LOGDIR/${exp_name}.log)"
   CUDA_VISIBLE_DEVICES=$gpu python eval_LlamaAVSR.py "${COMMON_ARGS[@]}" $extra \
     --exp-name "$exp_name" > "$LOGDIR/${exp_name}.log" 2>&1 &
