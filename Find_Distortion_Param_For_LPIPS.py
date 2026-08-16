@@ -86,6 +86,8 @@ def parse_args():
     parser.add_argument("--iterations", type=int, default=20, help="Bisection iterations, per video.")
     parser.add_argument("--limit", type=int, default=None,
                          help="Only process the first N rows of the CSV (for a quick pilot run).")
+    parser.add_argument("--device", type=str, default=None,
+                         help="torch device, e.g. 'cuda', 'cuda:0', 'cpu' (default: cuda if available).")
     parser.add_argument("--seed", type=int, default=42)
     return parser.parse_args()
 
@@ -177,52 +179,56 @@ def load_video_paths(csv_path, root_dir):
     return paths
 
 
-def bgr_to_lpips_tensor(frame_bgr):
-    """H x W x C (BGR, uint8) -> 1 x 3 x H x W tensor in [-1, 1], RGB (as LPIPS expects)."""
-    frame_rgb = frame_bgr[..., ::-1].astype(np.float32)
-    tensor = torch.from_numpy(frame_rgb.copy()).permute(2, 0, 1).unsqueeze(0)
-    return tensor / 127.5 - 1.0
+def bgr_to_lpips_batch(frames_bgr, device):
+    """list of H x W x C (BGR, uint8) -> N x 3 x H x W tensor in [-1, 1], RGB (as LPIPS expects)."""
+    tensors = [
+        torch.from_numpy(frame_bgr[..., ::-1].astype(np.float32).copy()).permute(2, 0, 1)
+        for frame_bgr in frames_bgr
+    ]
+    batch = torch.stack(tensors)
+    return (batch / 127.5 - 1.0).to(device)
 
 
-def lpips_distance(loss_fn, clean_bgr_crop, distorted_bgr_crop):
+def lpips_distance_batch(loss_fn, clean_crops, distorted_crops, device):
+    """Batches all frames into a single forward pass instead of one call per
+    frame - per-frame calls are dominated by kernel-launch overhead on a GPU,
+    so batching is what actually benefits from running on CUDA."""
     with torch.no_grad():
-        d = loss_fn(bgr_to_lpips_tensor(clean_bgr_crop), bgr_to_lpips_tensor(distorted_bgr_crop))
-    return d.item()
+        d = loss_fn(bgr_to_lpips_batch(clean_crops, device), bgr_to_lpips_batch(distorted_crops, device))
+    return d.mean().item()
 
 
-def evaluate_frame_type(loss_fn, dist_type, frame_clips_bgr, crop_size, param):
+def evaluate_frame_type(loss_fn, dist_type, frame_clips_bgr, crop_size, param, device):
     func = get_distortion_function(dist_type)
-    scores = []
+    clean_crops, distorted_crops = [], []
     for clean_bgr in frame_clips_bgr:
         distorted_bgr = func(clean_bgr.copy(), param)
-        scores.append(lpips_distance(
-            loss_fn, center_crop(clean_bgr, crop_size), center_crop(distorted_bgr, crop_size),
-        ))
-    return float(np.mean(scores))
+        clean_crops.append(center_crop(clean_bgr, crop_size))
+        distorted_crops.append(center_crop(distorted_bgr, crop_size))
+    return lpips_distance_batch(loss_fn, clean_crops, distorted_crops, device)
 
 
-def evaluate_vc(loss_fn, video_path, frame_idxs, crop_size, param):
+def evaluate_vc(loss_fn, video_path, frame_idxs, crop_size, param, device):
     fd, out_path = tempfile.mkstemp(suffix=".mp4")
     os.close(fd)
     try:
         video_compression(video_path, out_path, param)
         distorted_video = load_video(out_path)
         clean_video = load_video(video_path)
-        scores = []
+        clean_crops, distorted_crops = [], []
         for i in frame_idxs:
             j = min(i, distorted_video.shape[0] - 1)
             clean_bgr = convert_tensor_to_cv2_format(clean_video[i:i + 1])[0]
             distorted_bgr = convert_tensor_to_cv2_format(distorted_video[j:j + 1])[0]
-            scores.append(lpips_distance(
-                loss_fn, center_crop(clean_bgr, crop_size), center_crop(distorted_bgr, crop_size),
-            ))
-        return float(np.mean(scores))
+            clean_crops.append(center_crop(clean_bgr, crop_size))
+            distorted_crops.append(center_crop(distorted_bgr, crop_size))
+        return lpips_distance_batch(loss_fn, clean_crops, distorted_crops, device)
     finally:
         if os.path.exists(out_path):
             os.remove(out_path)
 
 
-def calibrate_one(video_path, dist_type, target_lpips, num_frames, crop_size, iterations, loss_fn):
+def calibrate_one(video_path, dist_type, target_lpips, num_frames, crop_size, iterations, loss_fn, device):
     video = load_video(video_path)
     frame_shape = video.shape
     t = video.shape[0]
@@ -230,12 +236,12 @@ def calibrate_one(video_path, dist_type, target_lpips, num_frames, crop_size, it
 
     if dist_type == "VC":
         def evaluate(param):
-            return evaluate_vc(loss_fn, video_path, idxs, crop_size, param)
+            return evaluate_vc(loss_fn, video_path, idxs, crop_size, param, device)
     else:
         frame_clips_bgr = [convert_tensor_to_cv2_format(video[i:i + 1])[0] for i in idxs]
 
         def evaluate(param):
-            return evaluate_frame_type(loss_fn, dist_type, frame_clips_bgr, crop_size, param)
+            return evaluate_frame_type(loss_fn, dist_type, frame_clips_bgr, crop_size, param, device)
 
     return bisection_search(dist_type, evaluate, target_lpips, iterations, frame_shape)
 
@@ -246,7 +252,12 @@ def main():
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
-    loss_fn = lpips.LPIPS(net="alex")
+    device = torch.device(args.device) if args.device else torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu"
+    )
+    print(f"Using device: {device}")
+
+    loss_fn = lpips.LPIPS(net="alex").to(device)
     loss_fn.eval()
 
     video_paths = load_video_paths(args.csv_path, args.root_dir)
@@ -258,7 +269,7 @@ def main():
         try:
             best_param, best_lpips = calibrate_one(
                 video_path, args.type, args.target_lpips, args.num_frames,
-                args.crop_size, args.iterations, loss_fn,
+                args.crop_size, args.iterations, loss_fn, device,
             )
         except Exception as e:
             print(f"[{i}/{len(video_paths)}] WARNING: skipping {video_path} ({e})")
