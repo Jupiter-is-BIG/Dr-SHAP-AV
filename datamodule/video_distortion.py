@@ -34,13 +34,12 @@ DISTORTION_TYPES = ["CC", "BW", "GNC", "GB", "JPEG", "VC"]
 FRAME_DISTORTION_TYPES = ["CC", "BW", "GNC", "GB", "JPEG"]
 
 _PARAM_DICT = {
-    "CC": [0.35*1.25*1.25*1.25*1.25, 0.35*1.25*1.25*1.25, 0.35*1.25*1.25, 0.35*1.25, 0.35],      # smaller, worse
-    "BW": [32, 64, 128, 256, 512],                 # larger, worse
-    "GNC": [0.004, 0.008, 0.016, 0.032, 0.064],   # larger, worse
-    "GB": [7, 9, 13, 21, 37],                   # larger, worse
-    # "GB": [7, 9, 13, 17, 21],                   # larger, worse
-    "JPEG": [1, 2, 4, 8, 16],                    # larger, worse
-    "VC": [23, 30, 37, 44, 51],                 # larger CRF, worse
+    "CC": [0.52, 0.42, 0.32, 0.22, 0.12],      # smaller, worse (factor of contrast change)
+    "BW": [64, 128, 256, 512, 1024],                  # larger, worse (num of null blocks)
+    "GNC": [0.008, 0.016, 0.032, 0.064, 0.128],     # larger, worse (variance of Gaussian noise)
+    "GB": [7, 11, 19, 31, 51],                       # larger, worse (kernel size for sd for Gaussian blur)
+    "JPEG": [2, 5, 8, 11, 14],                     # larger, worse (image reduce factor for downsample compression)
+    "VC": [35, 40, 45, 50, 55],                     # larger CRF, worse
 }
 
 _FUNC_DICT = {
